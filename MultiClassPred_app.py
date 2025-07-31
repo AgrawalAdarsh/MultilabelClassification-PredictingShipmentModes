@@ -17,20 +17,15 @@ except FileNotFoundError:
     st.error("❌ Model file 'best_model.pkl' not found.")
     st.stop()
 
-# Load feature names
 if os.path.exists("feature_list.pkl"):
     feature_names = joblib.load("feature_list.pkl")
 else:
     st.error("❌ Missing 'feature_list.pkl'. Please ensure it is in the same directory.")
     st.stop()
 
-# Load class names
 class_names = ["Air", "Road", "Rail", "Sea"]
 
-# Load metrics
 metrics_df = pd.read_csv("model_comparison_metrics.csv") if os.path.exists("model_comparison_metrics.csv") else None
-
-# Load scaler
 scaler = joblib.load("scaler.pkl") if os.path.exists("scaler.pkl") else None
 
 # --- App Title ---
@@ -48,19 +43,44 @@ X_input = pd.DataFrame([input_data])
 if st.sidebar.button("🔍 Predict Shipment Modes"):
     if scaler:
         X_scaled = scaler.transform(X_input)
-        prediction = model.predict(X_scaled)
     else:
-        prediction = model.predict(X_input)
+        X_scaled = X_input
 
-    prediction = np.atleast_1d(prediction[0])
-    labels = np.nonzero(prediction)[0]
+    try:
+        probs_raw = model.predict_proba(X_scaled)
 
-    st.success("✅ Predicted Shipment Mode(s):")
-    if len(labels) > 0:
-        predicted_modes = [class_names[i] for i in labels]
-        st.write(predicted_modes)
+        if isinstance(probs_raw, list):  # classifier chain or similar
+            probs = np.array([p[0][1] for p in probs_raw]).reshape(1, -1)
+        else:
+            probs = probs_raw
+    except AttributeError:
+        probs = model.predict(X_scaled).astype(float)
+
+    # --- Show Predictions at Multiple Thresholds ---
+    st.markdown("## 🎯 Predictions Across Thresholds")
+    thresholds = [0.2, 0.4, 0.6, 0.8]
+    all_preds = {}
+
+    for t in thresholds:
+        pred = (probs >= t).astype(int)
+        labels = np.nonzero(pred[0])[0]
+        predicted = [class_names[i] for i in labels] if labels.any() else ["None"]
+        all_preds[t] = predicted
+        st.write(f"**Threshold {t:.2f}:** {', '.join(predicted)}")
+
+    # --- Most Confident Modes ---
+    st.markdown("## ✅ Most Confident Prediction(s)")
+    confident_modes = []
+    for i in range(len(class_names)):
+        for t in reversed(thresholds):
+            if probs[0][i] >= t:
+                confident_modes.append((class_names[i], probs[0][i], t))
+                break
+    if confident_modes:
+        for mode, prob, t in confident_modes:
+            st.success(f"**{mode}** (Probability: {prob:.2f}, Threshold: {t})")
     else:
-        st.warning("No shipment mode predicted.")
+        st.warning("⚠️ No confident predictions.")
 
 # --- Divider ---
 st.markdown("---")
@@ -93,7 +113,7 @@ if metrics_df is not None:
 st.markdown("---")
 st.markdown(
     """
-    👨‍💻 **Developed by [Adarsh Agrawal](https://www.linkedin.com/in/adarsh-agrawal-3b0a76268/)**
+    👨‍💻 **Developed by [Adarsh Agrawal](https://www.linkedin.com/in/adarsh-agrawal-3b0a76268/)**  
     """,
     unsafe_allow_html=True
 )
