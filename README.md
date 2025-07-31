@@ -46,24 +46,3 @@ The model predicts a **probability** for each shipment mode.
 This gives a sense of how predictions evolve.
 
 ---
-
-## 🛠️ Setup & Run Locally
-
-1. **Clone the repository**
- ```bash
- git clone https://github.com/yourusername/shipment-mode-prediction.git
- cd shipment-mode-prediction
-```
-2. **Install Dependencies**
-```bash
-pip install -r requirements.txt
-```
-3.**Add model files**
-- best_model.pkl (your trained multilabel model)
-- feature_list.pkl (list of required input features)
-scaler.pkl (if used)
-- model_comparison_metrics.csv (optional, for chart display)
-4.**Run the app**
-  ```bash
-  streamlit run MultiClassPred_app.py
-  ```
