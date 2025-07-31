@@ -65,10 +65,10 @@ if st.sidebar.button("🔍 Predict Shipment Modes"):
     shipment_mode_indices = [0, 1, 2, 3]
     probs_selected = probs[:, shipment_mode_indices]
 
-    # --- Threshold-based Prediction ---
-    fixed_threshold = 0.5
-    st.markdown("## 🎯 Predictions Based on Fixed Threshold")
-    st.info(f"Using a fixed threshold of **{fixed_threshold}** to determine shipment modes.")
+    # --- Dynamic Threshold Selector ---
+    st.markdown("## 🎯 Predictions Based on Adjustable Threshold")
+    fixed_threshold = st.slider("Set threshold for class prediction:", min_value=0.0, max_value=1.0, value=0.5, step=0.05)
+    st.info(f"Using a threshold of **{fixed_threshold}** to determine shipment modes.")
 
     pred = (probs_selected >= fixed_threshold).astype(int)
     labels = np.nonzero(pred[0])[0]
