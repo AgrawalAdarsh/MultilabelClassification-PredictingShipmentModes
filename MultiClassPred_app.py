@@ -50,28 +50,33 @@ if st.sidebar.button("🔍 Predict Shipment Modes"):
     try:
         probs_raw = model.predict_proba(X_scaled)
 
-        # Handle multilabel output from models like ClassifierChain
+        # Handle multilabel output (list of arrays → 2D array)
         if isinstance(probs_raw, list):
-            probs = np.array([p[0][1] if isinstance(p[0], np.ndarray) else p[1] for p in probs_raw]).reshape(1, -1)
+            probs = np.array([p[:, 1] if p.ndim > 1 else p for p in probs_raw]).T
         else:
             probs = probs_raw
     except AttributeError:
         probs = model.predict(X_scaled).astype(float)
 
-    # --- Show Predictions ---
-    st.markdown("## 🎯 Predictions Based on Fixed Threshold (0.5)")
-    fixed_threshold = 0.5  # 🔒 Fixed Threshold
+    # --- Threshold Selection ---
+    fixed_threshold = 0.5
+    st.markdown("## 🎯 Predictions Based on Fixed Threshold")
     st.info(f"Using a fixed threshold of **{fixed_threshold}** to determine shipment modes.")
 
     pred = (probs >= fixed_threshold).astype(int)
     labels = np.nonzero(pred[0])[0]
     predicted = [class_names[i] for i in labels] if labels.any() else ["None"]
-    st.write(f"**Predicted Shipment Mode(s):** {', '.join(predicted)}")
+    st.success(f"**Predicted Shipment Mode(s):** {', '.join(predicted)}")
 
     # --- Show Probabilities ---
     st.markdown("## 📊 Predicted Probabilities for Each Mode")
     prob_df = pd.DataFrame(probs, columns=class_names)
     st.dataframe(prob_df.style.format("{:.2f}"))
+
+    # --- Optional: Show confidence message ---
+    max_prob = probs[0].max()
+    top_label = class_names[np.argmax(probs[0])]
+    st.markdown(f"### 🔎 Most Confident Prediction: **{top_label}** with {max_prob:.2%} confidence")
 
 # --- Divider ---
 st.markdown("---")
