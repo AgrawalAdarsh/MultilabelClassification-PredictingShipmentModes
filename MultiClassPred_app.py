@@ -24,7 +24,7 @@ else:
     st.stop()
 
 # --- Shipment Mode Labels ---
-class_names = ["Air", "Road", "Rail", "Sea"]  # Only these 4 will be shown
+class_names = ["Air", "Road", "Rail", "Sea"]
 
 # --- Optional Assets ---
 metrics_df = pd.read_csv("model_comparison_metrics.csv") if os.path.exists("model_comparison_metrics.csv") else None
@@ -52,9 +52,9 @@ if st.sidebar.button("🔍 Predict Shipment Modes"):
     try:
         probs_raw = model.predict_proba(X_scaled)
 
-        # Handle multilabel output: list of arrays
         if isinstance(probs_raw, list):
-            probs = np.array([p[1] if isinstance(p, (tuple, list)) else p for p in probs_raw])
+            # List of arrays from OneVsRestClassifier or similar
+            probs = np.array([p[0][1] if isinstance(p[0], (tuple, list, np.ndarray)) else p[0] for p in probs_raw])
             probs = np.array(probs).reshape(1, -1)
         else:
             probs = np.array(probs_raw).reshape(1, -1)
@@ -62,11 +62,10 @@ if st.sidebar.button("🔍 Predict Shipment Modes"):
         probs = model.predict(X_scaled).astype(float)
 
     # --- Only Use Shipment Modes ---
-    # Assuming Air, Road, Rail, Sea are the first 4 labels in multilabel model
     shipment_mode_indices = [0, 1, 2, 3]
     probs_selected = probs[:, shipment_mode_indices]
 
-    # --- Fixed Threshold Prediction ---
+    # --- Threshold-based Prediction ---
     fixed_threshold = 0.5
     st.markdown("## 🎯 Predictions Based on Fixed Threshold")
     st.info(f"Using a fixed threshold of **{fixed_threshold}** to determine shipment modes.")
@@ -78,12 +77,28 @@ if st.sidebar.button("🔍 Predict Shipment Modes"):
 
     # --- Show Probabilities ---
     st.markdown("## 📊 Predicted Probabilities for Each Mode")
-    st.write("✅ probs shape:", np.shape(probs_selected))
-    st.write("✅ class_names:", class_names)
     prob_df = pd.DataFrame(probs_selected, columns=class_names)
     st.dataframe(prob_df.style.format("{:.2f}"))
 
-    # --- Show Most Confident Mode ---
+    # --- Plot Probabilities ---
+    st.markdown("### 📈 Confidence Levels (Bar Chart)")
+    fig, ax = plt.subplots()
+    sns.barplot(x=class_names, y=probs_selected[0], ax=ax, palette="Blues_d")
+    ax.set_ylim(0, 1)
+    ax.set_ylabel("Probability")
+    ax.set_title("Predicted Confidence per Shipment Mode")
+    st.pyplot(fig)
+
+    # --- Top-2 Prediction (regardless of threshold) ---
+    top_n = 2
+    top_indices = np.argsort(probs_selected[0])[::-1][:top_n]
+    top_preds = [(class_names[i], probs_selected[0][i]) for i in top_indices]
+
+    st.markdown(f"### 🏆 Top-{top_n} Predicted Shipment Modes (Irrespective of Threshold)")
+    for mode, score in top_preds:
+        st.write(f"- **{mode}** → {score:.2%} confidence")
+
+    # --- Most Confident Prediction ---
     max_prob = probs_selected[0].max()
     top_label = class_names[np.argmax(probs_selected[0])]
     st.markdown(f"### 🔎 Most Confident Prediction: **{top_label}** with {max_prob:.2%} confidence")
