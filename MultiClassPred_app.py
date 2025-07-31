@@ -51,9 +51,8 @@ if st.sidebar.button("🔍 Predict Shipment Modes"):
     # --- Prediction Probabilities ---
     try:
         probs_raw = model.predict_proba(X_scaled)
-
         if isinstance(probs_raw, list):
-            # List of arrays from OneVsRestClassifier or similar
+            # If list of arrays from OneVsRestClassifier or similar
             probs = np.array([p[0][1] if isinstance(p[0], (tuple, list, np.ndarray)) else p[0] for p in probs_raw])
             probs = np.array(probs).reshape(1, -1)
         else:
@@ -89,7 +88,7 @@ if st.sidebar.button("🔍 Predict Shipment Modes"):
     ax.set_title("Predicted Confidence per Shipment Mode")
     st.pyplot(fig)
 
-    # --- Top-2 Prediction (regardless of threshold) ---
+    # --- Top-N Prediction (regardless of threshold) ---
     top_n = 2
     top_indices = np.argsort(probs_selected[0])[::-1][:top_n]
     top_preds = [(class_names[i], probs_selected[0][i]) for i in top_indices]
