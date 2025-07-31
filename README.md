@@ -22,4 +22,4 @@ This is a **multi-label classification** problem where a product can have multip
 The model predicts **probabilities** for each mode and uses a **threshold** to decide which ones to select.  
 Lower thresholds show more options; higher ones pick only high-confidence modes.  
 You can adjust the threshold using the slider in the sidebar.
-
+**Note:** Since the dataset is skewed toward **Road**, predictions often favor it.
