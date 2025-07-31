@@ -72,6 +72,8 @@ if st.sidebar.button("🔍 Predict Shipment Modes"):
 
     # --- Show Probabilities ---
     st.markdown("## 📊 Predicted Probabilities for Each Mode")
+    st.write("✅ probs shape:", np.shape(probs))
+    st.write("✅ class_names:", class_names)
     prob_df = pd.DataFrame(probs, columns=class_names)
     st.dataframe(prob_df.style.format("{:.2f}"))
 
