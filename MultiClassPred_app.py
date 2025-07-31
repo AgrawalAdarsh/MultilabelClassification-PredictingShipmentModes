@@ -51,10 +51,12 @@ if st.sidebar.button("🔍 Predict Shipment Modes"):
         probs_raw = model.predict_proba(X_scaled)
 
         # Handle multilabel output (list of arrays → 2D array)
+        # Safely extract probabilities from list-like outputs
         if isinstance(probs_raw, list):
-            probs = np.array([p[:, 1] if p.ndim > 1 else p for p in probs_raw]).T
+            probs = np.array([p[1] if isinstance(p, tuple) or isinstance(p, list) else p for p in probs_raw])
+            probs = np.array(probs).reshape(1, -1)
         else:
-            probs = probs_raw
+            probs = np.array(probs_raw).reshape(1, -1)
     except AttributeError:
         probs = model.predict(X_scaled).astype(float)
 
