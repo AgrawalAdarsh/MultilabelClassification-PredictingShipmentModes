@@ -71,7 +71,8 @@ if st.sidebar.button("🔍 Predict Shipment Modes"):
     st.markdown("## 🎯 Predictions Based on Threshold")
     st.info(f"Threshold used: **{fixed_threshold}**")
 
-    pred = (probs_selected >= fixed_threshold).astype(int)
+    threshold_array = np.array([thresholds[c] for c in class_names])
+    pred = (probs_selected >= threshold_array).astype(int)
     labels = np.nonzero(pred[0])[0]
     predicted = [class_names[i] for i in labels] if labels.any() else ["None"]
     st.success(f"**Predicted Shipment Mode(s):** {', '.join(predicted)}")
