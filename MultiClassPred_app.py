@@ -46,41 +46,32 @@ if st.sidebar.button("🔍 Predict Shipment Modes"):
     else:
         X_scaled = X_input
 
+    # --- Prediction Probabilities ---
     try:
         probs_raw = model.predict_proba(X_scaled)
 
-        if isinstance(probs_raw, list):  # classifier chain or similar
-            probs = np.array([p[0][1] for p in probs_raw]).reshape(1, -1)
+        # Handle multilabel output from models like ClassifierChain
+        if isinstance(probs_raw, list):
+            probs = np.array([p[0][1] if isinstance(p[0], np.ndarray) else p[1] for p in probs_raw]).reshape(1, -1)
         else:
             probs = probs_raw
     except AttributeError:
         probs = model.predict(X_scaled).astype(float)
 
-    # --- Show Predictions at Multiple Thresholds ---
-    st.markdown("## 🎯 Predictions Across Thresholds")
-    thresholds = [0.2, 0.4, 0.6, 0.8]
-    all_preds = {}
+    # --- Show Predictions ---
+    st.markdown("## 🎯 Predictions Based on Fixed Threshold (0.5)")
+    fixed_threshold = 0.5  # 🔒 Fixed Threshold
+    st.info(f"Using a fixed threshold of **{fixed_threshold}** to determine shipment modes.")
 
-    for t in thresholds:
-        pred = (probs >= t).astype(int)
-        labels = np.nonzero(pred[0])[0]
-        predicted = [class_names[i] for i in labels] if labels.any() else ["None"]
-        all_preds[t] = predicted
-        st.write(f"**Threshold {t:.2f}:** {', '.join(predicted)}")
+    pred = (probs >= fixed_threshold).astype(int)
+    labels = np.nonzero(pred[0])[0]
+    predicted = [class_names[i] for i in labels] if labels.any() else ["None"]
+    st.write(f"**Predicted Shipment Mode(s):** {', '.join(predicted)}")
 
-    # --- Most Confident Modes ---
-    st.markdown("## ✅ Most Confident Prediction(s)")
-    confident_modes = []
-    for i in range(len(class_names)):
-        for t in reversed(thresholds):
-            if probs[0][i] >= t:
-                confident_modes.append((class_names[i], probs[0][i], t))
-                break
-    if confident_modes:
-        for mode, prob, t in confident_modes:
-            st.success(f"**{mode}** (Probability: {prob:.2f}, Threshold: {t})")
-    else:
-        st.warning("⚠️ No confident predictions.")
+    # --- Show Probabilities ---
+    st.markdown("## 📊 Predicted Probabilities for Each Mode")
+    prob_df = pd.DataFrame(probs, columns=class_names)
+    st.dataframe(prob_df.style.format("{:.2f}"))
 
 # --- Divider ---
 st.markdown("---")
