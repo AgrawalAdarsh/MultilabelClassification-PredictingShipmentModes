@@ -39,6 +39,11 @@ input_data = {}
 for feature in feature_names:
     input_data[feature] = st.sidebar.number_input(f"{feature}", value=0.0, step=0.1)
 
+# --- Threshold Slider in Sidebar ---
+fixed_threshold = st.sidebar.slider("🎯 Prediction Threshold", min_value=0.0, max_value=1.0, value=0.5, step=0.05)
+st.sidebar.info(f"Using a threshold of **{fixed_threshold}** for shipment mode prediction.")
+
+# --- Form Input as DataFrame ---
 X_input = pd.DataFrame([input_data])
 
 # --- Predict Button ---
@@ -52,7 +57,6 @@ if st.sidebar.button("🔍 Predict Shipment Modes"):
     try:
         probs_raw = model.predict_proba(X_scaled)
         if isinstance(probs_raw, list):
-            # If list of arrays from OneVsRestClassifier or similar
             probs = np.array([p[0][1] if isinstance(p[0], (tuple, list, np.ndarray)) else p[0] for p in probs_raw])
             probs = np.array(probs).reshape(1, -1)
         else:
@@ -64,10 +68,9 @@ if st.sidebar.button("🔍 Predict Shipment Modes"):
     shipment_mode_indices = [0, 1, 2, 3]
     probs_selected = probs[:, shipment_mode_indices]
 
-    # --- Dynamic Threshold Selector ---
-    st.markdown("## 🎯 Predictions Based on Adjustable Threshold")
-    fixed_threshold = st.slider("Set threshold for class prediction:", min_value=0.0, max_value=1.0, value=0.5, step=0.05)
-    st.info(f"Using a threshold of **{fixed_threshold}** to determine shipment modes.")
+    # --- Predictions using threshold ---
+    st.markdown("## 🎯 Predictions Based on Threshold")
+    st.info(f"Threshold used: **{fixed_threshold}**")
 
     pred = (probs_selected >= fixed_threshold).astype(int)
     labels = np.nonzero(pred[0])[0]
