@@ -23,13 +23,22 @@ else:
     st.error("❌ Missing 'feature_list.pkl'. Please ensure it is in the same directory.")
     st.stop()
 
+# --- Shipment Mode Labels ---
 class_names = ["Air", "Road", "Rail", "Sea"]
 
-# Optional Assets
+# --- Thresholds (optional custom per-class, default to slider value) ---
+thresholds = {
+    "Air": 0.5,
+    "Road": 0.5,
+    "Rail": 0.5,
+    "Sea": 0.5
+}
+
+# --- Optional Assets ---
 metrics_df = pd.read_csv("model_comparison_metrics.csv") if os.path.exists("model_comparison_metrics.csv") else None
 scaler = joblib.load("scaler.pkl") if os.path.exists("scaler.pkl") else None
 
-# --- Title ---
+# --- App Title ---
 st.markdown("<h1 style='text-align: center;'>🚚 Multilabel Shipment Mode Prediction App</h1>", unsafe_allow_html=True)
 
 # --- Sidebar Inputs ---
@@ -38,6 +47,10 @@ input_data = {}
 for feature in feature_names:
     input_data[feature] = st.sidebar.number_input(f"{feature}", value=0.0, step=0.1)
 
+# --- Threshold Slider in Sidebar ---
+fixed_threshold = st.sidebar.slider("🎯 Prediction Threshold", min_value=0.0, max_value=1.0, value=0.5, step=0.05)
+
+# --- Form Input as DataFrame ---
 X_input = pd.DataFrame([input_data])
 
 # --- Predict Button ---
@@ -47,28 +60,64 @@ if st.sidebar.button("🔍 Predict Shipment Modes"):
     else:
         X_scaled = X_input
 
-    # --- Binary Prediction ---
-    pred = model.predict(X_scaled)
+    # --- Prediction Probabilities ---
+    try:
+        probs_raw = model.predict_proba(X_scaled)
+        if isinstance(probs_raw, list):
+            probs = np.array([p[0][1] if isinstance(p[0], (tuple, list, np.ndarray)) else p[0] for p in probs_raw])
+            probs = np.array(probs).reshape(1, -1)
+        else:
+            probs = np.array(probs_raw).reshape(1, -1)
+    except AttributeError:
+        probs = model.predict(X_scaled).astype(float)
 
-    # --- Decode Predicted Labels ---
-    labels = np.nonzero(pred[0])[0]
-    predicted = [class_names[i] for i in labels] if labels.any() else ["None"]
+    # --- Only Use Shipment Modes ---
+    shipment_mode_indices = [0, 1, 2, 3]
+    probs_selected = probs[:, shipment_mode_indices]
+
+    # --- Predictions using threshold ---
+    st.markdown("## 🎯 Predictions Based on Threshold")
+    st.info(f"Threshold used: **{fixed_threshold}**")
+
+    threshold_array = np.array([thresholds.get(c, fixed_threshold) for c in class_names])
+    probs_selected = np.atleast_2d(probs_selected)
+    pred = (probs_selected >= threshold_array).astype(int)
+
+    if pred.shape[0] > 0:
+        labels = np.where(pred[0] == 1)[0]
+    else:
+        labels = []
+
+    predicted = [class_names[i] for i in labels] if len(labels) > 0 else ["None"]
     st.success(f"**Predicted Shipment Mode(s):** {', '.join(predicted)}")
 
-    # --- Visualize Prediction Vector ---
-    st.markdown("### ✅ Prediction Output")
-    pred_df = pd.DataFrame(pred, columns=class_names)
-    st.dataframe(pred_df)
+    # --- Show Probabilities ---
+    st.markdown("## 📊 Predicted Probabilities for Each Mode")
+    prob_df = pd.DataFrame(probs_selected, columns=class_names)
+    st.dataframe(prob_df.style.format("{:.2f}"))
 
-    # --- Bar Chart of Predicted Labels (1s) ---
-    st.markdown("### 📊 Predicted Modes (Bar Chart)")
-    binary_values = pred[0]
+    # --- Plot Probabilities ---
+    st.markdown("### 📈 Confidence Levels (Bar Chart)")
     fig, ax = plt.subplots()
-    sns.barplot(x=class_names, y=binary_values, ax=ax, palette="Set2")
+    sns.barplot(x=class_names, y=probs_selected[0], ax=ax, palette="Blues_d")
     ax.set_ylim(0, 1)
-    ax.set_ylabel("Prediction (0 or 1)")
-    ax.set_title("Predicted Shipment Modes")
+    ax.set_ylabel("Probability")
+    ax.set_title("Predicted Confidence per Shipment Mode")
     st.pyplot(fig)
+
+    # --- Top-N Prediction (regardless of threshold) ---
+    top_n = 2
+    top_indices = np.argsort(probs_selected[0])[::-1][:top_n]
+    top_preds = [(class_names[i], probs_selected[0][i]) for i in top_indices]
+
+    st.markdown(f"### 🏆 Top-{top_n} Predicted Shipment Modes (Irrespective of Threshold)")
+    for mode, score in top_preds:
+        st.write(f"- **{mode}** → {score:.2%} confidence")
+
+    # --- Most Confident Prediction ---
+    max_prob = probs_selected[0].max()
+    top_label = class_names[np.argmax(probs_selected[0])]
+    st.markdown(f"### 🔎 Most Confident Prediction: **{top_label}** with {max_prob:.2%} confidence")
 
 # --- Divider ---
 st.markdown("---")
