@@ -26,7 +26,7 @@ else:
 # --- Shipment Mode Labels ---
 class_names = ["Air", "Road", "Rail", "Sea"]
 
-# --- Thresholds (optional custom per-class, default to slider value) ---
+# --- Thresholds ---
 thresholds = {
     "Air": 0.5,
     "Road": 0.5,
@@ -105,7 +105,7 @@ if st.sidebar.button("🔍 Predict Shipment Modes"):
     ax.set_title("Predicted Confidence per Shipment Mode")
     st.pyplot(fig)
 
-    # --- Top-N Prediction (regardless of threshold) ---
+    # --- Top-N Prediction ---
     top_n = 2
     top_indices = np.argsort(probs_selected[0])[::-1][:top_n]
     top_preds = [(class_names[i], probs_selected[0][i]) for i in top_indices]
