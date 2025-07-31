@@ -41,7 +41,6 @@ for feature in feature_names:
 
 # --- Threshold Slider in Sidebar ---
 fixed_threshold = st.sidebar.slider("🎯 Prediction Threshold", min_value=0.0, max_value=1.0, value=0.5, step=0.05)
-st.sidebar.info(f"Using a threshold of **{fixed_threshold}** for shipment mode prediction.")
 
 # --- Form Input as DataFrame ---
 X_input = pd.DataFrame([input_data])
