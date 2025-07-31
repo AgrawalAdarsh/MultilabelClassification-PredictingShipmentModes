@@ -23,8 +23,10 @@ else:
     st.error("❌ Missing 'feature_list.pkl'. Please ensure it is in the same directory.")
     st.stop()
 
-class_names = ["Air", "Road", "Rail", "Sea"]
+# --- Shipment Mode Labels ---
+class_names = ["Air", "Road", "Rail", "Sea"]  # Only these 4 will be shown
 
+# --- Optional Assets ---
 metrics_df = pd.read_csv("model_comparison_metrics.csv") if os.path.exists("model_comparison_metrics.csv") else None
 scaler = joblib.load("scaler.pkl") if os.path.exists("scaler.pkl") else None
 
@@ -50,36 +52,40 @@ if st.sidebar.button("🔍 Predict Shipment Modes"):
     try:
         probs_raw = model.predict_proba(X_scaled)
 
-        # Handle multilabel output (list of arrays → 2D array)
-        # Safely extract probabilities from list-like outputs
+        # Handle multilabel output: list of arrays
         if isinstance(probs_raw, list):
-            probs = np.array([p[1] if isinstance(p, tuple) or isinstance(p, list) else p for p in probs_raw])
+            probs = np.array([p[1] if isinstance(p, (tuple, list)) else p for p in probs_raw])
             probs = np.array(probs).reshape(1, -1)
         else:
             probs = np.array(probs_raw).reshape(1, -1)
     except AttributeError:
         probs = model.predict(X_scaled).astype(float)
 
-    # --- Threshold Selection ---
+    # --- Only Use Shipment Modes ---
+    # Assuming Air, Road, Rail, Sea are the first 4 labels in multilabel model
+    shipment_mode_indices = [0, 1, 2, 3]
+    probs_selected = probs[:, shipment_mode_indices]
+
+    # --- Fixed Threshold Prediction ---
     fixed_threshold = 0.5
     st.markdown("## 🎯 Predictions Based on Fixed Threshold")
     st.info(f"Using a fixed threshold of **{fixed_threshold}** to determine shipment modes.")
 
-    pred = (probs >= fixed_threshold).astype(int)
+    pred = (probs_selected >= fixed_threshold).astype(int)
     labels = np.nonzero(pred[0])[0]
     predicted = [class_names[i] for i in labels] if labels.any() else ["None"]
     st.success(f"**Predicted Shipment Mode(s):** {', '.join(predicted)}")
 
     # --- Show Probabilities ---
     st.markdown("## 📊 Predicted Probabilities for Each Mode")
-    st.write("✅ probs shape:", np.shape(probs))
+    st.write("✅ probs shape:", np.shape(probs_selected))
     st.write("✅ class_names:", class_names)
-    prob_df = pd.DataFrame(probs, columns=class_names)
+    prob_df = pd.DataFrame(probs_selected, columns=class_names)
     st.dataframe(prob_df.style.format("{:.2f}"))
 
-    # --- Optional: Show confidence message ---
-    max_prob = probs[0].max()
-    top_label = class_names[np.argmax(probs[0])]
+    # --- Show Most Confident Mode ---
+    max_prob = probs_selected[0].max()
+    top_label = class_names[np.argmax(probs_selected[0])]
     st.markdown(f"### 🔎 Most Confident Prediction: **{top_label}** with {max_prob:.2%} confidence")
 
 # --- Divider ---
