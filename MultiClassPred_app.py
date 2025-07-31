@@ -110,7 +110,7 @@ if st.sidebar.button("🔍 Predict Shipment Modes"):
     top_indices = np.argsort(probs_selected[0])[::-1][:top_n]
     top_preds = [(class_names[i], probs_selected[0][i]) for i in top_indices]
 
-    st.markdown(f"### 🏆 Top-{top_n} Predicted Shipment Modes (Irrespective of Threshold)")
+    st.markdown(f"### 🏆 Top-{top_n} Predicted Shipment Modes")
     for mode, score in top_preds:
         st.write(f"- **{mode}** → {score:.2%} confidence")
 
