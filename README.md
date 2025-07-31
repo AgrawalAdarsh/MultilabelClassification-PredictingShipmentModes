@@ -18,31 +18,8 @@ This Streamlit web app predicts the **most suitable shipment mode(s)** (Air, Roa
 
 ## 🚀 How It Works
 
-### 🔄 Multi-label Classification
+This is a **multi-label classification** problem where a product can have multiple valid shipment modes (e.g., both Road and Sea).  
+The model predicts **probabilities** for each mode and uses a **threshold** to decide which ones to select.  
+Lower thresholds show more options; higher ones pick only high-confidence modes.  
+You can adjust the threshold using the slider in the sidebar.
 
-Each product can be shipped by **multiple modes**. This is different from single-label classification.  
-Example:
-- A product might be shipped by both **Road** and **Sea**, depending on its properties.
-
-### 📉 Thresholds & Probabilities
-
-The model predicts a **probability** for each shipment mode.  
-- For example:  
-- Air: 0.81
-- Road: 0.42
-- Rail: 0.17
-- Sea: 0.02
-
-- A **threshold** is applied to these probabilities:
-- If `probability >= threshold`, that mode is **selected**.
-- Lower thresholds select more modes (more flexible).
-- Higher thresholds select fewer, more **confident** modes.
-
-- The app evaluates at:
-- `Threshold 0.20`
-- `Threshold 0.40`
-- `Threshold 0.60`
-- `Threshold 0.80`  
-This gives a sense of how predictions evolve.
-
----
